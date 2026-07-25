@@ -2,553 +2,408 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Hextris - 六边形消除</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎙️ 会议纪要助手 — 浏览器录音 + AI 自动生成会议纪要</title>
 <style>
+  :root {
+    --bg: #f5f5f7;
+    --card: #ffffff;
+    --text: #1d1d1f;
+    --sub: #6e6e73;
+    --accent: #0071e3;
+    --accent-hover: #0077ed;
+    --border: #d2d2d7;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    --radius: 12px;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    background: #0a0a1a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* Hero */
+  .hero {
+    background: linear-gradient(135deg, #1d1d1f 0%, #2d2d3f 50%, #1a1a2e 100%);
+    color: #fff;
+    text-align: center;
+    padding: 80px 24px 60px;
+  }
+  .hero h1 {
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 700;
+    margin-bottom: 16px;
+    letter-spacing: -0.5px;
+  }
+  .hero p {
+    font-size: clamp(16px, 2.5vw, 20px);
+    color: #a1a1aa;
+    max-width: 600px;
+    margin: 0 auto 32px;
+  }
+  .hero .badge-row {
     display: flex;
     justify-content: center;
-    align-items: center;
-    height: 100vh;
-    height: 100dvh;
-    font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-    overflow: hidden;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
+    gap: 12px;
+    flex-wrap: wrap;
   }
-  .game-wrapper {
-    position: relative;
+  .hero .badge {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #e0e0e0;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+  }
+  .hero .btn {
+    display: inline-block;
+    margin-top: 32px;
+    background: var(--accent);
+    color: #fff;
+    padding: 12px 32px;
+    border-radius: 24px;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+  .hero .btn:hover { background: var(--accent-hover); }
+
+  /* Container */
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 24px;
+  }
+
+  /* Sections */
+  .section { margin-bottom: 48px; }
+  .section h2 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 20px;
     display: flex;
-    flex-direction: column;
     align-items: center;
     gap: 10px;
   }
-  canvas { display: block; border-radius: 50%; cursor: pointer; }
-  .hud {
-    display: flex;
-    gap: 32px;
-    align-items: center;
-    pointer-events: none;
+  .section h3 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text);
   }
-  .stat { text-align: center; color: #e0e0e0; }
-  .stat .label { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #6a7b95; }
-  .stat .val { font-size: 24px; font-weight: bold; color: #fff; text-shadow: 0 0 12px rgba(100,200,255,0.5); }
-  .combo-text {
-    font-size: 15px; font-weight: bold; color: #ffd740; min-height: 22px;
-    text-shadow: 0 0 10px rgba(255,215,64,0.7); transition: opacity 0.1s;
-  }
-  .hint { font-size: 10px; color: #3a4a65; letter-spacing: 1px; pointer-events: none; }
-  .overlay {
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.78); display: flex; justify-content: center; align-items: center; z-index: 10;
-  }
-  .overlay .box {
-    background: #12122a; border-radius: 16px; padding: 28px 42px; text-align: center;
-    border: 2px solid #e94560; box-shadow: 0 0 50px rgba(233,69,96,0.2);
-  }
-  .overlay h2 { color: #e94560; font-size: 30px; margin-bottom: 6px; }
-  .overlay .final-score { color: #fff; font-size: 44px; font-weight: bold; margin-bottom: 14px; }
-  .overlay button {
-    background: #e94560; color: #fff; border: none;
-    padding: 12px 32px; font-size: 16px; border-radius: 8px;
-    cursor: pointer; font-weight: bold; letter-spacing: 1px;
-  }
-  .overlay button:hover { transform: scale(1.06); }
-  .hidden { display: none !important; }
 
-  @media (max-width: 500px) {
-    .hud { gap: 20px; }
-    .stat .val { font-size: 17px; }
-    .stat .label { font-size: 9px; }
-    .hint { display: none; }
+  /* Feature Cards */
+  .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
   }
+  .feature-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow);
+  }
+  .feature-card .icon { font-size: 28px; margin-bottom: 10px; }
+  .feature-card h3 { font-size: 16px; margin-bottom: 6px; }
+  .feature-card p { font-size: 14px; color: var(--sub); }
+
+  /* Code Block */
+  .code-block {
+    background: #1d1d1f;
+    color: #e0e0e0;
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace;
+    font-size: 14px;
+    overflow-x: auto;
+    line-height: 1.8;
+  }
+  .code-block .c { color: #6e6e73; }
+  .code-block .cmd { color: #64d8ff; }
+
+  /* Compare Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    font-size: 14px;
+  }
+  th, td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th { background: #f9f9fb; font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+
+  /* Structure Tree */
+  .file-tree {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    box-shadow: var(--shadow);
+  }
+  .file-tree .dir { color: var(--accent); }
+  .file-tree .file { color: var(--sub); }
+  .file-tree .comment { color: #aaa; }
+
+  /* Steps */
+  .step {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .step .num {
+    width: 36px;
+    height: 36px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .step .step-content { flex: 1; }
+  .step .step-content p { color: var(--sub); font-size: 14px; margin-top: 4px; }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 32px 24px;
+    color: var(--sub);
+    font-size: 13px;
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
 
-<div class="game-wrapper">
-  <div class="hud">
-    <div class="stat"><div class="label">分数</div><div class="val" id="score">0</div></div>
-    <div class="stat"><div class="label">最高连击</div><div class="val" id="maxCombo">0</div></div>
+<!-- Hero -->
+<header class="hero">
+  <h1>🎙️ 会议纪要助手</h1>
+  <p>浏览器录音 → 语音转文字 → AI 自动生成结构化会议纪要，<br>无需安装 App，打开网页即用。</p>
+  <div class="badge-row">
+    <span class="badge">🎤 浏览器录音</span>
+    <span class="badge">📝 语音转文字</span>
+    <span class="badge">🤖 AI 总结</span>
+    <span class="badge">🌐 多语言</span>
+    <span class="badge">⚡ 实时反馈</span>
   </div>
-  <canvas id="c"></canvas>
-  <div class="combo-text" id="comboText"></div>
-  <div class="hint">点击左右半区 / ← → 旋转 &nbsp;|&nbsp; P 暂停</div>
-</div>
+  <a class="btn" href="https://github.com/li1095226532-debug/meeting-minutes" target="_blank">📂 查看 GitHub 仓库</a>
+</header>
 
-<div class="overlay hidden" id="goOverlay">
-  <div class="box">
-    <h2>游戏结束</h2>
-    <div class="final-score" id="finalScore">0</div>
-    <button onclick="restart()">再来一局</button>
-  </div>
-</div>
+<main class="container">
 
-<script>
-// ==================== 常量 ====================
-const COLORS = [
-  '#ff1744', // 红
-  '#00e5ff', // 青
-  '#76ff03', // 绿
-  '#ff9100', // 橙
-  '#d500f9', // 紫
-  '#2979ff', // 蓝
-];
-const NUM_COLORS = 5;
-const MATCH_MIN = 3;
-const INNER_R  = 44;       // 中央六边形半径
-const BLOCK_SZ = 15;       // 小方块六边形半径
-const STACK_STEP = BLOCK_SZ * 2 + 3; // 每个方块占的径向间距
-const OUTER_R  = 198;      // 外圈游戏结束边界
-const SPAWN_R  = OUTER_R + 18;
-const FALL_SPD = 1.4;      // 方块下落速度 (px/frame)
-const ROT_SPD  = 0.22;     // 旋转 lerp 速度 (弧度/frame)
-const SPAWN_IV = 1200;     // 初始生成间隔 ms
-const MATCH_PARTICLES = 8; // 消除时的粒子数
+  <!-- Features -->
+  <section class="section">
+    <h2>✨ 功能特性</h2>
+    <div class="features">
+      <div class="feature-card">
+        <div class="icon">🎤</div>
+        <h3>浏览器录音</h3>
+        <p>基于 MediaRecorder API，支持暂停/继续，无需安装任何 App。</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">📝</div>
+        <h3>语音转文字</h3>
+        <p>支持本地 GPU 加速、CPU 模式、云端 API 三种后端，灵活适配。</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🤖</div>
+        <h3>AI 会议总结</h3>
+        <p>调用 Claude API 自动提炼主题、讨论要点、决议和待办事项。</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🌐</div>
+        <h3>多语言支持</h3>
+        <p>支持中文、英文，自动检测语言，通用场景全覆盖。</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">📂</div>
+        <h3>文件上传</h3>
+        <p>支持直接上传已有录音文件（webm / mp3 / m4a / wav）。</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">⚡</div>
+        <h3>实时反馈</h3>
+        <p>录音波形显示、计时器、处理进度提示，体验流畅。</p>
+      </div>
+    </div>
+  </section>
 
-const SQRT3 = Math.sqrt(3);
-const TAU = Math.PI * 2;
+  <!-- Quick Start -->
+  <section class="section">
+    <h2>🚀 快速开始</h2>
 
-// ==================== Canvas ====================
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
-let W, H, CX, CY;
-const DPR = Math.min(window.devicePixelRatio || 1, 2);
+    <div class="step">
+      <div class="num">1</div>
+      <div class="step-content">
+        <h3>安装依赖</h3>
+        <p>基础依赖 + 语音转文字引擎（三选一）</p>
+      </div>
+    </div>
+    <pre class="code-block"><span class="c"># 基础依赖（必装）</span>
+<span class="cmd">pip install</span> fastapi uvicorn python-multipart python-dotenv anthropic
 
-function resize() {
-  const maxW = Math.min(window.innerWidth - 16, 540);
-  const maxH = Math.min(window.innerHeight - 200, 540);
-  const sz = Math.min(maxW, maxH);
-  W = sz; H = sz; CX = W / 2; CY = H / 2;
-  canvas.width = W * DPR;
-  canvas.height = H * DPR;
-  canvas.style.width = W + 'px';
-  canvas.style.height = H + 'px';
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-}
-resize();
-window.addEventListener('resize', resize);
+<span class="c"># 语音转文字（三选一）</span>
+<span class="cmd">pip install</span> faster-whisper    <span class="c"># 推荐，GPU 加速</span>
+<span class="cmd">pip install</span> openai-whisper    <span class="c"># 备选，CPU</span>
+<span class="c"># 或使用 OpenAI API（无需本地模型）</span></pre>
 
-// ==================== 游戏状态 ====================
-let hexRot   = 0;      // lerp 后的实际旋转角
-let hexTarget = 0;     // 目标旋转角
-let stacks   = Array.from({ length: 6 }, () => []); // stacks[face] = [colorIdx, ...]
-let incoming = [];     // { dir:0-5, dist, color }
-let particles = [];    // { x, y, vx, vy, life, color, size }
+    <div class="step">
+      <div class="num">2</div>
+      <div class="step-content">
+        <h3>配置环境变量</h3>
+        <p>创建 <code>.env</code> 文件并填写 API Key</p>
+      </div>
+    </div>
+    <pre class="code-block"><span class="cmd">cp</span> .env.example .env
+<span class="c"># 编辑 .env：填写 ANTHROPIC_API_KEY</span></pre>
 
-let score = 0;
-let combo = 0;
-let maxCombo = 0;
-let comboTimer = 0;
-const COMBO_FRAMES = 75;
+    <div class="step">
+      <div class="num">3</div>
+      <div class="step-content">
+        <h3>启动服务</h3>
+        <p>浏览器打开 <code>http://localhost:8866</code></p>
+      </div>
+    </div>
+    <pre class="code-block"><span class="cmd">python server.py</span>
+<span class="c"># 浏览器打开 → http://localhost:8866</span></pre>
+  </section>
 
-let spawnTimer = 0;
-let spawnIv = SPAWN_IV;
-let activeColors = 3;
+  <!-- Backends -->
+  <section class="section">
+    <h2>🔧 语音转文字后端对比</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>后端</th>
+          <th>速度</th>
+          <th>准确度</th>
+          <th>是否需要 API Key</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>faster-whisper</strong></td>
+          <td>⚡ 快（GPU）</td>
+          <td>⭐⭐⭐⭐</td>
+          <td>❌ 不需要</td>
+        </tr>
+        <tr>
+          <td><strong>openai-whisper</strong></td>
+          <td>🐢 慢（CPU）</td>
+          <td>⭐⭐⭐⭐</td>
+          <td>❌ 不需要</td>
+        </tr>
+        <tr>
+          <td><strong>OpenAI API</strong></td>
+          <td>⚡ 快（云端）</td>
+          <td>⭐⭐⭐⭐⭐</td>
+          <td>✅ 需要</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
 
-let running = true;
-let paused = false;
-let animId = null;
+  <!-- API -->
+  <section class="section">
+    <h2>🔌 API 接口</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>方法</th>
+          <th>路径</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>GET</code></td>
+          <td><code>/</code></td>
+          <td>前端页面</td>
+        </tr>
+        <tr>
+          <td><code>POST</code></td>
+          <td><code>/api/transcribe-and-summarize</code></td>
+          <td>上传音频 → 转写 + 总结</td>
+        </tr>
+        <tr>
+          <td><code>POST</code></td>
+          <td><code>/api/transcribe</code></td>
+          <td>仅语音转文字</td>
+        </tr>
+        <tr>
+          <td><code>POST</code></td>
+          <td><code>/api/summarize</code></td>
+          <td>仅文本总结</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
 
-// ==================== 方向与角度 ====================
-// dir 0 = 正上方 (-π/2), dir 1 = 右上方, ... 顺时针
-function dirAngle(d) { return -Math.PI / 2 + d * Math.PI / 3; }
+  <!-- Architecture -->
+  <section class="section">
+    <h2>📁 项目结构</h2>
+    <pre class="file-tree">
+<span class="dir">meeting-minutes/</span>
+├── <span class="file">server.py</span>              <span class="comment">FastAPI 后端</span>
+├── <span class="dir">templates/</span>
+│   └── <span class="file">index.html</span>         <span class="comment">Web 前端界面</span>
+├── <span class="file">requirements.txt</span>       <span class="comment">Python 依赖列表</span>
+├── <span class="file">setup.bat</span>              <span class="comment">Windows 一键安装脚本</span>
+├── <span class="file">.env.example</span>           <span class="comment">环境变量模板</span>
+├── <span class="dir">docs/</span>
+│   └── <span class="file">index.html</span>         <span class="comment">项目落地页（本页）</span>
+├── <span class="dir">.claude/</span>
+│   └── <span class="dir">agents/</span>
+│       └── <span class="file">evidence-researcher.md</span>  <span class="comment">证据研究员子代理</span>
+└── <span class="dir">uploads/</span>               <span class="comment">录音文件暂存</span></pre>
+  </section>
 
-// 给定当前 hexRot，face f 指向的连续角度
-function faceAngle(f) { return -Math.PI / 2 + hexRot + f * Math.PI / 3; }
+  <!-- Tech Stack -->
+  <section class="section">
+    <h2>🛠️ 技术栈</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>层级</th>
+          <th>技术</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>前端</td><td>HTML5 + CSS3 + 原生 JavaScript（MediaRecorder API）</td></tr>
+        <tr><td>后端</td><td>Python FastAPI</td></tr>
+        <tr><td>语音识别</td><td>faster-whisper / openai-whisper / OpenAI Whisper API</td></tr>
+        <tr><td>AI 总结</td><td>Anthropic Claude API</td></tr>
+        <tr><td>音频处理</td><td>Web Audio API（浏览器端）</td></tr>
+      </tbody>
+    </table>
+  </section>
 
-// 颜色
-function rndColor() { return Math.floor(Math.random() * activeColors); }
+</main>
 
-// ==================== 旋转 ====================
-function rotL() { hexTarget -= Math.PI / 3; }
-function rotR() { hexTarget += Math.PI / 3; }
+<footer>
+  <p>MIT License · <a href="https://github.com/li1095226532-debug/meeting-minutes" target="_blank">GitHub</a> · 本地运行后访问 <code>localhost:8866</code> 即可使用完整功能</p>
+</footer>
 
-// ==================== 方块到达中心: 绑到最近的 face ====================
-function attachBlock(dir, color) {
-  const incAngle = dirAngle(dir);
-  let bestF = 0, bestD = Infinity;
-  for (let f = 0; f < 6; f++) {
-    let d = Math.abs(incAngle - faceAngle(f));
-    if (d > Math.PI) d = TAU - d;
-    if (d < bestD) { bestD = d; bestF = f; }
-  }
-  stacks[bestF].push(color);
-  checkMatch(bestF);
-}
-
-// ==================== 匹配消除 ====================
-function checkMatch(f) {
-  const s = stacks[f];
-  if (s.length < MATCH_MIN) return;
-  const last = s[s.length - 1];
-  let n = 0;
-  for (let i = s.length - 1; i >= 0; i--) {
-    if (s[i] === last) n++;
-    else break;
-  }
-  if (n >= MATCH_MIN) {
-    // 消除的方块位置 → 生成粒子
-    const a = faceAngle(f);
-    for (let j = 0; j < n; j++) {
-      const dist = INNER_R + BLOCK_SZ + (s.length - 1 - j) * STACK_STEP + 3;
-      const px = CX + Math.cos(a) * dist;
-      const py = CY + Math.sin(a) * dist;
-      spawnParticles(px, py, COLORS[last]);
-    }
-    s.splice(s.length - n, n);
-
-    // 连击
-    combo++;
-    comboTimer = COMBO_FRAMES;
-    if (combo > maxCombo) maxCombo = combo;
-    score += n * 10 + Math.floor(combo / 3) * 15;
-
-    // 递归检查
-    checkMatch(f);
-  }
-}
-
-// ==================== 粒子 ====================
-function spawnParticles(x, y, color) {
-  for (let i = 0; i < MATCH_PARTICLES; i++) {
-    const angle = Math.random() * TAU;
-    const speed = 1 + Math.random() * 3;
-    particles.push({
-      x, y,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      life: 25 + Math.random() * 20,
-      color,
-      size: 2 + Math.random() * 3,
-    });
-  }
-}
-
-function updateParticles() {
-  for (let i = particles.length - 1; i >= 0; i--) {
-    const p = particles[i];
-    p.x += p.vx;
-    p.y += p.vy;
-    p.life--;
-    if (p.life <= 0) particles.splice(i, 1);
-  }
-}
-
-function drawParticles() {
-  for (const p of particles) {
-    const alpha = p.life / 40;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size, 0, TAU);
-    ctx.fillStyle = p.color.replace(')', `,${alpha})`).replace('rgb', 'rgba');
-    if (p.color.startsWith('#')) {
-      // 处理 hex 颜色
-      const rgb = hexToRgb(p.color);
-      ctx.fillStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},${alpha})`;
-    }
-    ctx.fill();
-  }
-}
-
-// ==================== 游戏结束 ====================
-function isGameOver() {
-  for (let f = 0; f < 6; f++) {
-    if (INNER_R + stacks[f].length * STACK_STEP > OUTER_R) return true;
-  }
-  return false;
-}
-
-// ==================== 生成方块 ====================
-function spawnBlock() {
-  if (!running || paused) return;
-  const dir = Math.floor(Math.random() * 6);
-  incoming.push({ dir, dist: SPAWN_R, color: rndColor() });
-}
-
-// ==================== 更新 ====================
-function update() {
-  if (!running || paused) return;
-
-  // 旋转 lerp
-  let diff = hexTarget - hexRot;
-  while (diff > Math.PI) diff -= TAU;
-  while (diff < -Math.PI) diff += TAU;
-  if (Math.abs(diff) < 0.0008) {
-    hexRot = hexTarget;
-  } else {
-    hexRot += Math.sign(diff) * Math.min(Math.abs(diff), ROT_SPD);
-  }
-
-  // 移动 incoming
-  for (let i = incoming.length - 1; i >= 0; i--) {
-    incoming[i].dist -= FALL_SPD;
-    if (incoming[i].dist <= INNER_R + BLOCK_SZ) {
-      attachBlock(incoming[i].dir, incoming[i].color);
-      incoming.splice(i, 1);
-      if (isGameOver()) { endGame(); return; }
-    }
-  }
-
-  // 生成
-  spawnTimer++;
-  if (spawnTimer * 16.67 >= spawnIv) {
-    spawnTimer = 0;
-    spawnBlock();
-    // 偶尔同时生成两个
-    if (Math.random() < 0.2) spawnBlock();
-  }
-
-  // 连击计时
-  if (comboTimer > 0) { comboTimer--; if (comboTimer <= 0) combo = 0; }
-
-  // 难度
-  const lv = Math.floor(score / 250) + 1;
-  spawnIv = Math.max(320, SPAWN_IV - (lv - 1) * 55);
-  activeColors = Math.min(NUM_COLORS, 3 + Math.floor((lv - 1) / 3));
-
-  // 粒子
-  updateParticles();
-}
-
-// ==================== 渲染 ====================
-function drawHex(x, y, sz, fill, stroke, lw) {
-  ctx.beginPath();
-  for (let i = 0; i < 6; i++) {
-    const a = Math.PI / 6 + i * Math.PI / 3;
-    const px = x + sz * Math.cos(a), py = y + sz * Math.sin(a);
-    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
-  }
-  ctx.closePath();
-  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
-  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1; ctx.stroke(); }
-}
-
-function draw() {
-  ctx.clearRect(0, 0, W, H);
-
-  // 外圈虚线
-  ctx.beginPath();
-  ctx.arc(CX, CY, OUTER_R, 0, TAU);
-  ctx.strokeStyle = '#2d2d50';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([5, 5]);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // 径向淡线
-  for (let d = 0; d < 6; d++) {
-    const a = dirAngle(d);
-    ctx.beginPath();
-    ctx.moveTo(CX + Math.cos(a) * (INNER_R + 8), CY + Math.sin(a) * (INNER_R + 8));
-    ctx.lineTo(CX + Math.cos(a) * OUTER_R, CY + Math.sin(a) * OUTER_R);
-    ctx.strokeStyle = 'rgba(255,255,255,0.035)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
-
-  // 堆叠方块（按离中心距离排序绘制，避免遮挡问题）
-  let allStacks = [];
-  for (let f = 0; f < 6; f++) {
-    const a = faceAngle(f);
-    for (let i = 0; i < stacks[f].length; i++) {
-      const dist = INNER_R + BLOCK_SZ + i * STACK_STEP + 3;
-      allStacks.push({
-        x: CX + Math.cos(a) * dist,
-        y: CY + Math.sin(a) * dist,
-        color: COLORS[stacks[f][i]],
-        dist,
-        danger: dist > OUTER_R - 35,
-      });
-    }
-  }
-  // 远处的先画（离中心远 = 在下层）
-  allStacks.sort((a, b) => b.dist - a.dist);
-  for (const s of allStacks) {
-    const clr = s.color;
-    const grad = ctx.createRadialGradient(s.x - 3, s.y - 4, BLOCK_SZ * 0.08, s.x, s.y, BLOCK_SZ);
-    grad.addColorStop(0, lighten(clr, 0.4));
-    grad.addColorStop(1, darken(clr, 0.12));
-    drawHex(s.x, s.y, BLOCK_SZ - 0.5, grad, darken(clr, 0.3), 1.5);
-    // 危险闪烁
-    if (s.danger && Math.floor(Date.now() / 180) % 2 === 0) {
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, BLOCK_SZ + 5, 0, TAU);
-      ctx.strokeStyle = 'rgba(255,60,60,0.35)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-  }
-
-  // incoming 方块
-  for (const b of incoming) {
-    const a = dirAngle(b.dir);
-    const bx = CX + Math.cos(a) * b.dist, by = CY + Math.sin(a) * b.dist;
-    const clr = COLORS[b.color];
-    const grad = ctx.createRadialGradient(bx - 3, by - 4, BLOCK_SZ * 0.08, bx, by, BLOCK_SZ);
-    grad.addColorStop(0, lighten(clr, 0.45));
-    grad.addColorStop(1, clr);
-    drawHex(bx, by, BLOCK_SZ - 0.3, grad, darken(clr, 0.22), 1.6);
-  }
-
-  // 中央六边形
-  ctx.save();
-  ctx.translate(CX, CY);
-  ctx.rotate(hexRot);
-  const innerGrad = ctx.createRadialGradient(0, 0, INNER_R * 0.25, 0, 0, INNER_R);
-  innerGrad.addColorStop(0, '#1e2d4a');
-  innerGrad.addColorStop(1, '#0f1a30');
-  drawHex(0, 0, INNER_R, innerGrad, '#3d5d8e', 3);
-  // 内光晕
-  const glow = ctx.createRadialGradient(0, 0, INNER_R * 0.2, 0, 0, INNER_R);
-  glow.addColorStop(0, 'rgba(80,150,230,0.2)');
-  glow.addColorStop(1, 'rgba(20,40,80,0)');
-  ctx.beginPath();
-  for (let i = 0; i < 6; i++) {
-    const a = Math.PI / 6 + i * Math.PI / 3;
-    const px = INNER_R * Math.cos(a), py = INNER_R * Math.sin(a);
-    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
-  }
-  ctx.closePath();
-  ctx.fillStyle = glow;
-  ctx.fill();
-  // 面分隔线
-  for (let i = 0; i < 6; i++) {
-    const a = Math.PI / 6 + i * Math.PI / 3;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(INNER_R * 0.95 * Math.cos(a), INNER_R * 0.95 * Math.sin(a));
-    ctx.strokeStyle = '#3a5a8e';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
-  ctx.restore();
-
-  // 粒子
-  drawParticles();
-
-  // 连击光环
-  if (combo >= 3 && comboTimer > 0) {
-    const alpha = Math.min(1, comboTimer / 25);
-    const r = OUTER_R + 7 + (combo >= 6 ? 10 : 0);
-    ctx.beginPath();
-    ctx.arc(CX, CY, r, 0, TAU);
-    ctx.strokeStyle = `rgba(255,215,64,${alpha * 0.6})`;
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
-  }
-
-  // 暂停文字
-  if (paused) {
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.font = 'bold 36px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('已暂停', CX, CY);
-  }
-}
-
-// ==================== 颜色工具 ====================
-function hexToRgb(h) {
-  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
-  return m ? {r:parseInt(m[1],16),g:parseInt(m[2],16),b:parseInt(m[3],16)} : {r:0,g:0,b:0};
-}
-function lighten(h, a) {
-  const c = hexToRgb(h);
-  return `rgb(${Math.min(255,c.r+Math.round(255*a))},${Math.min(255,c.g+Math.round(255*a))},${Math.min(255,c.b+Math.round(255*a))})`;
-}
-function darken(h, a) {
-  const c = hexToRgb(h);
-  return `rgb(${Math.max(0,c.r-Math.round(255*a))},${Math.max(0,c.g-Math.round(255*a))},${Math.max(0,c.b-Math.round(255*a))})`;
-}
-
-// ==================== UI ====================
-function updateUI() {
-  document.getElementById('score').textContent = score;
-  document.getElementById('maxCombo').textContent = maxCombo;
-  const el = document.getElementById('comboText');
-  if (combo >= 5) {
-    el.textContent = `🔥 ${combo} 连击!`;
-    el.style.opacity = '1';
-  } else if (combo >= 3) {
-    el.textContent = `${combo} 连击`;
-    el.style.opacity = '0.85';
-  } else if (combo > 0) {
-    el.textContent = `${combo} 连击`;
-    el.style.opacity = '0.5';
-  } else {
-    el.style.opacity = '0';
-  }
-}
-
-function endGame() {
-  running = false;
-  cancelAnimationFrame(animId);
-  document.getElementById('finalScore').textContent = score;
-  document.getElementById('goOverlay').classList.remove('hidden');
-}
-
-function restart() {
-  stacks = Array.from({ length: 6 }, () => []);
-  incoming = [];
-  particles = [];
-  hexRot = 0;
-  hexTarget = 0;
-  score = 0;
-  combo = 0;
-  maxCombo = 0;
-  comboTimer = 0;
-  spawnTimer = 0;
-  spawnIv = SPAWN_IV;
-  activeColors = 3;
-  running = true;
-  paused = false;
-  document.getElementById('goOverlay').classList.add('hidden');
-  updateUI();
-  animId = requestAnimationFrame(loop);
-}
-
-// ==================== 主循环 ====================
-function loop() {
-  update();
-  draw();
-  updateUI();
-  animId = requestAnimationFrame(loop);
-}
-
-// ==================== 输入 ====================
-document.addEventListener('keydown', e => {
-  if (!running) {
-    if (e.key === 'r' || e.key === 'R') { e.preventDefault(); restart(); }
-    return;
-  }
-  if (e.key === 'p' || e.key === 'P') { e.preventDefault(); paused = !paused; return; }
-  if (paused) return;
-  if (e.key === 'ArrowLeft')  { e.preventDefault(); rotL(); }
-  if (e.key === 'ArrowRight') { e.preventDefault(); rotR(); }
-});
-
-canvas.addEventListener('pointerdown', e => {
-  if (!running || paused) return;
-  e.preventDefault();
-  const rect = canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  if (x < rect.width / 2) rotL(); else rotR();
-});
-
-canvas.addEventListener('touchstart', e => {
-  if (!running || paused) return;
-  e.preventDefault();
-  const rect = canvas.getBoundingClientRect();
-  const x = e.touches[0].clientX - rect.left;
-  if (x < rect.width / 2) rotL(); else rotR();
-}, { passive: false });
-
-// ==================== 启动 ====================
-updateUI();
-animId = requestAnimationFrame(loop);
-</script>
 </body>
 </html>
