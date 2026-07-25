@@ -1,0 +1,19 @@
+# ===== 必选 =====
+fastapi>=0.100.0
+uvicorn>=0.20.0
+python-multipart>=0.0.6
+python-dotenv>=1.0.0
+
+# ===== 语音转文字（任选其一）=====
+
+# 方式1: faster-whisper（推荐，需 Python 3.9+，GPU 加速）
+# faster-whisper>=1.0.0
+
+# 方式2: openai-whisper（备选，支持 Python 3.8+，CPU 运行）
+# openai-whisper>=20231117
+
+# 方式3: OpenAI Whisper API（云端）
+# openai>=1.0.0
+
+# ===== AI 总结 =====
+anthropic>=0.20.0

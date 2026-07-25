@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>会议纪要助手</title>
+<style>
+  :root {
+    --bg: #f5f5f7;
+    --card: #ffffff;
+    --text: #1d1d1f;
+    --sub: #6e6e73;
+    --accent: #0071e3;
+    --accent-hover: #0077ed;
+    --danger: #ff3b30;
+    --danger-hover: #e0352b;
+    --border: #d2d2d7;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: var(--shadow);
+  }
+  .header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .header h1 .icon { font-size: 28px; }
+  .header-right { display: flex; gap: 12px; align-items: center; }
+
+  /* Main layout */
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 20px;
+  }
+  @media (max-width: 768px) {
+    .container { grid-template-columns: 1fr; }
+  }
+
+  /* Cards */
+  .card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+  .card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--sub);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .full-width { grid-column: 1 / -1; }
+
+  /* Recorder area */
+  .recorder-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .timer {
+    font-size: 48px;
+    font-weight: 300;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 2px;
+    color: var(--text);
+  }
+  .timer.recording { color: var(--danger); }
+  .status-badge {
+    font-size: 13px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: #e8e8ed;
+    color: var(--sub);
+  }
+  .status-badge.recording {
+    background: #ffe5e5;
+    color: var(--danger);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* Waveform */
+  .waveform {
+    width: 100%;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    overflow: hidden;
+  }
+  .waveform .bar {
+    width: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    transition: height 0.1s ease;
+  }
+  .waveform.active .bar {
+    background: var(--accent);
+  }
+
+  /* Buttons */
+  .btn-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 24px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+  .btn-danger {
+    background: var(--danger);
+    color: #fff;
+  }
+  .btn-danger:hover:not(:disabled) { background: var(--danger-hover); }
+  .btn-outline {
+    background: transparent;
+    color: var(--accent);
+    border: 1.5px solid var(--accent);
+  }
+  .btn-outline:hover:not(:disabled) { background: #f0f6ff; }
+  .btn-sm { padding: 6px 14px; font-size: 13px; }
+
+  /* Content areas */
+  .content-box {
+    min-height: 120px;
+    max-height: 400px;
+    overflow-y: auto;
+    font-size: 14px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    color: var(--text);
+    padding: 12px;
+    background: #fafafa;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .content-box:empty::after {
+    content: "等待处理...";
+    color: #ccc;
+    font-style: italic;
+  }
+  .summary-box {
+    min-height: 200px;
+    max-height: 600px;
+  }
+  .summary-box h3 { font-size: 15px; margin: 12px 0 4px; }
+  .summary-box strong { color: var(--accent); }
+
+  /* Select */
+  .select-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--sub);
+  }
+  select {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 14px;
+    background: var(--card);
+    cursor: pointer;
+  }
+
+  /* Spinner */
+  .spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1d1d1f;
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 20px;
+    font-size: 14px;
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  /* Markdown-like summary styling */
+  .summary-content {
+    font-size: 14px;
+    line-height: 1.8;
+  }
+  .summary-content h1, .summary-content h2, .summary-content h3 {
+    font-size: 15px;
+    margin: 14px 0 6px;
+    color: var(--text);
+  }
+  .summary-content ul, .summary-content ol {
+    padding-left: 20px;
+    margin: 4px 0;
+  }
+  .summary-content li { margin: 3px 0; }
+  .summary-content hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span class="icon">🎙️</span>会议纪要助手</h1>
+  <div class="header-right">
+    <div class="select-wrap">
+      <span>语言：</span>
+      <select id="langSelect">
+        <option value="zh">中文</option>
+        <option value="en">English</option>
+        <option value="auto">自动检测</option>
+      </select>
+    </div>
+    <label style="display:flex;align-items:center;gap:6px;font-size:14px;color:var(--sub);cursor:pointer;">
+      <input type="checkbox" id="summaryToggle" checked> AI 总结
+    </label>
+  </div>
+</div>
+
+<div class="container">
+  <!-- Recorder Card -->
+  <div class="card">
+    <div class="card-title">🔴 录音</div>
+    <div class="recorder-section">
+      <div class="timer" id="timer">00:00</div>
+      <div class="status-badge" id="statusBadge">准备就绪</div>
+      <div class="waveform" id="waveform"></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="recordBtn" onclick="startRecording()">
+          ▶ 开始录音
+        </button>
+        <button class="btn btn-danger" id="stopBtn" onclick="stopRecording()" disabled>
+          ⏹ 停止录音
+        </button>
+        <button class="btn btn-outline" id="pauseBtn" onclick="togglePause()" disabled>
+          ⏸ 暂停
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Card -->
+  <div class="card" style="display:flex;flex-direction:column;gap:14px;">
+    <div class="card-title">📋 操作</div>
+
+    <!-- Upload section -->
+    <div>
+      <div style="font-size:13px;color:var(--sub);margin-bottom:6px;">或者上传已有的录音文件：</div>
+      <input type="file" id="fileInput" accept="audio/*" style="font-size:13px;"
+             onchange="handleFileUpload(this)">
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--border);">
+
+    <div style="font-size:13px;color:var(--sub);">
+      <strong>使用说明：</strong>
+      <ol style="margin:6px 0 0 16px;line-height:1.8;">
+        <li>点击「开始录音」，授权麦克风权限</li>
+        <li>录音过程中可暂停/继续</li>
+        <li>点击「停止录音」后自动处理</li>
+        <li>也可以直接上传已有的录音文件</li>
+        <li>首次运行需下载语音模型（约1.5GB）</li>
+        <li>AI总结需设置 <code>ANTHROPIC_API_KEY</code></li>
+      </ol>
+    </div>
+
+    <div style="font-size:13px;color:var(--sub);">
+      <strong>启动方式：</strong>
+      <code style="background:#f0f0f0;padding:2px 6px;border-radius:4px;">
+        python server.py
+      </code>
+    </div>
+  </div>
+
+  <!-- Transcript Card -->
+  <div class="card full-width">
+    <div class="card-title">
+      📝 转写文本
+      <button class="btn btn-outline btn-sm" onclick="copyText('transcriptBox')" style="margin-left:auto;">📋 复制</button>
+    </div>
+    <div class="content-box" id="transcriptBox"></div>
+  </div>
+
+  <!-- Summary Card -->
+  <div class="card full-width">
+    <div class="card-title">
+      ✨ 会议纪要
+      <button class="btn btn-outline btn-sm" onclick="copyText('summaryBox')" style="margin-left:auto;">📋 复制</button>
+    </div>
+    <div class="content-box summary-box summary-content" id="summaryBox"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ 状态管理 ============
+let mediaRecorder = null;
+let audioChunks = [];
+let timerInterval = null;
+let seconds = 0;
+let isPaused = false;
+let audioContext = null;
+let analyser = null;
+let animationId = null;
+
+// ============ 波形初始化 ============
+function initWaveform() {
+  const container = document.getElementById('waveform');
+  container.innerHTML = '';
+  for (let i = 0; i < 45; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'bar';
+    bar.style.height = (3 + Math.random() * 8) + 'px';
+    container.appendChild(bar);
+  }
+}
+initWaveform();
+
+// ============ 录音 ============
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    // 设置音频分析器
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 256;
+    const source = audioContext.createMediaStreamSource(stream);
+    source.connect(analyser);
+    animateWaveform();
+
+    // 选择最佳支持的格式
+    let mimeType = 'audio/webm;codecs=opus';
+    if (!MediaRecorder.isTypeSupported(mimeType)) {
+      mimeType = 'audio/webm';
+    }
+    if (!MediaRecorder.isTypeSupported(mimeType)) {
+      mimeType = 'audio/mp4';
+    }
+
+    mediaRecorder = new MediaRecorder(stream, { mimeType });
+    audioChunks = [];
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) audioChunks.push(e.data);
+    };
+
+    mediaRecorder.onstop = () => {
+      // 停止音频轨道
+      stream.getTracks().forEach(t => t.stop());
+      stopWaveform();
+      processRecording();
+    };
+
+    mediaRecorder.start(250); // 每250ms收集一次数据
+    seconds = 0;
+    isPaused = false;
+    updateUI('recording');
+    startTimer();
+  } catch (err) {
+    console.error(err);
+    showToast('无法访问麦克风: ' + err.message);
+  }
+}
+
+function togglePause() {
+  if (!mediaRecorder) return;
+  if (isPaused) {
+    mediaRecorder.resume();
+    isPaused = false;
+    updateUI('recording');
+    startTimer();
+  } else {
+    mediaRecorder.pause();
+    isPaused = true;
+    updateUI('paused');
+    stopTimer();
+  }
+}
+
+function stopRecording() {
+  if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
+  mediaRecorder.stop();
+  stopTimer();
+  updateUI('processing');
+}
+
+// ============ 文件上传 ============
+async function handleFileUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  showToast('正在处理上传文件...');
+  await processAudioFile(file);
+}
+
+// ============ 处理音频 ============
+async function processRecording() {
+  const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+  await processAudioFile(blob, '录音_' + new Date().toLocaleString() + '.webm');
+}
+
+async function processAudioFile(blob, filename = 'upload.webm') {
+  updateUI('processing');
+  const lang = document.getElementById('langSelect').value;
+  const enableSummary = document.getElementById('summaryToggle').checked;
+
+  const formData = new FormData();
+  formData.append('audio', blob, filename);
+  formData.append('language', lang);
+  formData.append('enable_summary', enableSummary);
+
+  try {
+    const res = await fetch('/api/transcribe-and-summarize', {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      document.getElementById('transcriptBox').textContent = data.transcript || '（未识别到语音内容）';
+      if (data.summary && data.summary.content) {
+        document.getElementById('summaryBox').innerHTML = renderMarkdown(data.summary.content);
+      } else if (data.summary && data.summary.error) {
+        document.getElementById('summaryBox').textContent = 'AI 总结失败: ' + data.summary.error;
+      } else if (data.warning) {
+        document.getElementById('summaryBox').textContent = data.warning;
+      } else {
+        document.getElementById('summaryBox').textContent = '（未启用 AI 总结，请设置 ANTHROPIC_API_KEY）';
+      }
+      showToast('处理完成！');
+    } else {
+      showToast('处理失败，请重试');
+    }
+  } catch (err) {
+    console.error(err);
+    showToast('请求失败: ' + err.message);
+  }
+  updateUI('idle');
+}
+
+// ============ 轻量 Markdown → HTML ============
+function renderMarkdown(text) {
+  let html = text
+    // 标题
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    // 加粗
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // 列表
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+    // 分隔线
+    .replace(/^---$/gm, '<hr>')
+    // 段落
+    .replace(/\n\n/g, '<br><br>');
+
+  return html;
+}
+
+// ============ UI 辅助 ============
+function updateUI(state) {
+  const recordBtn = document.getElementById('recordBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const statusBadge = document.getElementById('statusBadge');
+  const timer = document.getElementById('timer');
+  const waveform = document.getElementById('waveform');
+
+  switch (state) {
+    case 'recording':
+      recordBtn.disabled = true;
+      stopBtn.disabled = false;
+      pauseBtn.disabled = false;
+      pauseBtn.textContent = '⏸ 暂停';
+      statusBadge.textContent = '● 录音中';
+      statusBadge.className = 'status-badge recording';
+      timer.className = 'timer recording';
+      waveform.className = 'waveform active';
+      break;
+    case 'paused':
+      recordBtn.disabled = true;
+      stopBtn.disabled = false;
+      pauseBtn.disabled = false;
+      pauseBtn.textContent = '▶ 继续';
+      statusBadge.textContent = '⏸ 已暂停';
+      statusBadge.className = 'status-badge';
+      timer.className = 'timer';
+      waveform.className = 'waveform';
+      break;
+    case 'processing':
+      recordBtn.disabled = true;
+      stopBtn.disabled = true;
+      pauseBtn.disabled = true;
+      statusBadge.textContent = '⏳ 处理中...';
+      statusBadge.className = 'status-badge';
+      timer.className = 'timer';
+      waveform.className = 'waveform';
+      break;
+    case 'idle':
+      recordBtn.disabled = false;
+      stopBtn.disabled = true;
+      pauseBtn.disabled = true;
+      pauseBtn.textContent = '⏸ 暂停';
+      statusBadge.textContent = '准备就绪';
+      statusBadge.className = 'status-badge';
+      timer.className = 'timer';
+      timer.textContent = '00:00';
+      waveform.className = 'waveform';
+      break;
+  }
+}
+
+function startTimer() {
+  stopTimer();
+  timerInterval = setInterval(() => {
+    seconds++;
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    document.getElementById('timer').textContent = m + ':' + s;
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  seconds = 0;
+}
+
+function animateWaveform() {
+  if (!analyser) return;
+  const bars = document.querySelectorAll('#waveform .bar');
+  const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+  function draw() {
+    animationId = requestAnimationFrame(draw);
+    analyser.getByteFrequencyData(dataArray);
+    const step = Math.floor(dataArray.length / bars.length);
+    bars.forEach((bar, i) => {
+      const val = dataArray[i * step] / 255;
+      const h = Math.max(3, val * 55);
+      bar.style.height = h + 'px';
+    });
+  }
+  draw();
+}
+
+function stopWaveform() {
+  if (animationId) cancelAnimationFrame(animationId);
+  if (audioContext) audioContext.close();
+  audioContext = null;
+  analyser = null;
+  animationId = null;
+  // 重置波形条
+  document.querySelectorAll('#waveform .bar').forEach(b => b.style.height = '3px');
+}
+
+function copyText(boxId) {
+  const el = document.getElementById(boxId);
+  const text = el.innerText;
+  if (!text.trim()) return showToast('没有可复制的内容');
+  navigator.clipboard.writeText(text).then(() => showToast('已复制到剪贴板'));
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = 'toast show';
+  clearTimeout(toast._timeout);
+  toast._timeout = setTimeout(() => toast.className = 'toast', 2000);
+}
+</script>
+</body>
+</html>
