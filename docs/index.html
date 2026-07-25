@@ -2,304 +2,458 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>六边形俄罗斯方块 Hex Tetris</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Hextris - 六边形消除</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    background: #1a1a2e;
+    background: #0a0a1a;
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
+    height: 100dvh;
     font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
     overflow: hidden;
     user-select: none;
     -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
-  .game-container {
-    display: flex;
-    gap: 20px;
-    align-items: stretch;
-    padding: 10px;
-  }
-  .board-wrapper {
-    background: #16213e;
-    border-radius: 16px;
-    padding: 12px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-    border: 2px solid #2a3a5e;
-  }
-  canvas#board {
-    display: block;
-    border-radius: 4px;
-  }
-  .side-panel {
+  .game-wrapper {
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    min-width: 150px;
-  }
-  .panel-box {
-    background: #16213e;
-    border-radius: 12px;
-    padding: 14px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-    border: 2px solid #2a3a5e;
-    text-align: center;
-    color: #e0e0e0;
-  }
-  .panel-box h3 {
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    color: #8a9bb5;
-    margin-bottom: 8px;
-  }
-  .panel-box .value {
-    font-size: 26px;
-    font-weight: bold;
-    color: #ffffff;
-    text-shadow: 0 0 12px rgba(100,200,255,0.5);
-  }
-  canvas#preview {
-    display: block;
-    margin: 0 auto;
-  }
-  .controls-info {
-    font-size: 10px;
-    color: #6a7b95;
-    line-height: 1.9;
-  }
-  .controls-info kbd {
-    background: #2a3a5e;
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-family: inherit;
-    font-size: 10px;
-    border: 1px solid #3a4a6e;
-  }
-  .game-over-overlay {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.75);
-    display: flex;
-    justify-content: center;
     align-items: center;
-    z-index: 10;
+    gap: 10px;
   }
-  .game-over-box {
-    background: #16213e;
-    border-radius: 16px;
-    padding: 32px 44px;
-    text-align: center;
-    border: 2px solid #e94560;
-    box-shadow: 0 0 48px rgba(233,69,96,0.3);
-  }
-  .game-over-box h2 {
-    color: #e94560;
-    font-size: 32px;
-    margin-bottom: 12px;
-  }
-  .game-over-box .final-score {
-    color: #ffffff;
-    font-size: 44px;
-    font-weight: bold;
-    margin-bottom: 20px;
-  }
-  .game-over-box button {
-    background: #e94560;
-    color: white;
-    border: none;
-    padding: 10px 28px;
-    font-size: 16px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: transform 0.1s, box-shadow 0.1s;
-  }
-  .game-over-box button:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 16px rgba(233,69,96,0.5);
-  }
-  .paused-overlay {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.6);
+  canvas { display: block; border-radius: 50%; cursor: pointer; }
+  .hud {
     display: flex;
-    justify-content: center;
+    gap: 32px;
     align-items: center;
-    z-index: 9;
     pointer-events: none;
   }
-  .paused-overlay span {
-    color: #fff;
-    font-size: 40px;
-    font-weight: bold;
-    letter-spacing: 6px;
-    text-shadow: 0 0 20px rgba(255,255,255,0.5);
+  .stat { text-align: center; color: #e0e0e0; }
+  .stat .label { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: #6a7b95; }
+  .stat .val { font-size: 24px; font-weight: bold; color: #fff; text-shadow: 0 0 12px rgba(100,200,255,0.5); }
+  .combo-text {
+    font-size: 15px; font-weight: bold; color: #ffd740; min-height: 22px;
+    text-shadow: 0 0 10px rgba(255,215,64,0.7); transition: opacity 0.1s;
   }
+  .hint { font-size: 10px; color: #3a4a65; letter-spacing: 1px; pointer-events: none; }
+  .overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.78); display: flex; justify-content: center; align-items: center; z-index: 10;
+  }
+  .overlay .box {
+    background: #12122a; border-radius: 16px; padding: 28px 42px; text-align: center;
+    border: 2px solid #e94560; box-shadow: 0 0 50px rgba(233,69,96,0.2);
+  }
+  .overlay h2 { color: #e94560; font-size: 30px; margin-bottom: 6px; }
+  .overlay .final-score { color: #fff; font-size: 44px; font-weight: bold; margin-bottom: 14px; }
+  .overlay button {
+    background: #e94560; color: #fff; border: none;
+    padding: 12px 32px; font-size: 16px; border-radius: 8px;
+    cursor: pointer; font-weight: bold; letter-spacing: 1px;
+  }
+  .overlay button:hover { transform: scale(1.06); }
   .hidden { display: none !important; }
 
-  @media (max-width: 600px) {
-    .game-container {
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-    }
-    .side-panel {
-      flex-direction: row;
-      flex-wrap: wrap;
-      gap: 8px;
-      justify-content: center;
-    }
-    .panel-box {
-      padding: 8px 12px;
-    }
-    .panel-box h3 { font-size: 10px; margin-bottom: 4px; }
-    .panel-box .value { font-size: 18px; }
-    .controls-info { display: none; }
+  @media (max-width: 500px) {
+    .hud { gap: 20px; }
+    .stat .val { font-size: 17px; }
+    .stat .label { font-size: 9px; }
+    .hint { display: none; }
   }
 </style>
 </head>
 <body>
 
-<div class="game-container">
-  <div class="board-wrapper">
-    <canvas id="board"></canvas>
+<div class="game-wrapper">
+  <div class="hud">
+    <div class="stat"><div class="label">分数</div><div class="val" id="score">0</div></div>
+    <div class="stat"><div class="label">最高连击</div><div class="val" id="maxCombo">0</div></div>
   </div>
-  <div class="side-panel">
-    <div class="panel-box">
-      <h3>分数</h3>
-      <div class="value" id="score">0</div>
-    </div>
-    <div class="panel-box">
-      <h3>行数</h3>
-      <div class="value" id="lines">0</div>
-    </div>
-    <div class="panel-box">
-      <h3>等级</h3>
-      <div class="value" id="level">1</div>
-    </div>
-    <div class="panel-box">
-      <h3>下一个</h3>
-      <canvas id="preview" width="120" height="100"></canvas>
-    </div>
-    <div class="panel-box controls-info">
-      <div><kbd>←</kbd> <kbd>→</kbd> 移动</div>
-      <div><kbd>↑</kbd> 旋转</div>
-      <div><kbd>↓</kbd> 软降</div>
-      <div><kbd>空格</kbd> 硬降</div>
-      <div><kbd>P</kbd> 暂停</div>
-    </div>
-  </div>
+  <canvas id="c"></canvas>
+  <div class="combo-text" id="comboText"></div>
+  <div class="hint">点击左右半区 / ← → 旋转 &nbsp;|&nbsp; P 暂停</div>
 </div>
 
-<div class="game-over-overlay hidden" id="gameOverOverlay">
-  <div class="game-over-box">
+<div class="overlay hidden" id="goOverlay">
+  <div class="box">
     <h2>游戏结束</h2>
     <div class="final-score" id="finalScore">0</div>
-    <button onclick="restartGame()">重新开始</button>
+    <button onclick="restart()">再来一局</button>
   </div>
-</div>
-
-<div class="paused-overlay hidden" id="pausedOverlay">
-  <span>已暂停</span>
 </div>
 
 <script>
 // ==================== 常量 ====================
-const COLS = 10;
-const ROWS = 18;
-const HEX_SIZE = 20;
-const SQRT3 = Math.sqrt(3);
-
-// 每种方块的颜色（赛博朋克风）
-const PIECE_COLORS = ['#00e5ff', '#ff6d00', '#76ff03', '#ff1744', '#d500f9', '#ffe57f'];
-
-// ==================== 块定义（轴向坐标偏移，相对 pivot）====================
-// 旋转：绕原点逆时针 60° → (q,r) 变为 (-r, q+r)
-function makeRotations(blocks) {
-  const rotations = [blocks];
-  let cur = blocks;
-  for (let i = 1; i < 6; i++) {
-    cur = cur.map(b => ({ q: -b.r, r: b.q + b.r }));
-    rotations.push(cur);
-  }
-  // 去重
-  const unique = [];
-  const seen = new Set();
-  for (const rot of rotations) {
-    const key = rot.map(b => `${b.q},${b.r}`).sort().join('|');
-    if (!seen.has(key)) { seen.add(key); unique.push(rot); }
-  }
-  return unique;
-}
-
-const PIECE_DEFS = [
-  // I: 4个六边形沿一个方向排成直线 (方向: q 轴 = 右偏下 30°)
-  { name: 'I',     rots: makeRotations([{q:0,r:0},{q:1,r:0},{q:2,r:0},{q:3,r:0}]) },
-  // L 钩: 3个直线 + 拐弯
-  { name: 'L',     rots: makeRotations([{q:0,r:0},{q:1,r:0},{q:2,r:0},{q:2,r:-1}]) },
-  // 三角
-  { name: 'Tri',   rots: makeRotations([{q:0,r:0},{q:1,r:0},{q:0,r:1}]) },
-  // 菱形/平行四边形
-  { name: 'Dia',   rots: makeRotations([{q:0,r:0},{q:1,r:0},{q:1,r:-1},{q:2,r:-1}]) },
-  // Z/S 蛇形
-  { name: 'Snake', rots: makeRotations([{q:0,r:0},{q:1,r:0},{q:1,r:1},{q:2,r:1}]) },
-  // T 形 (三个方向 + 中心)
-  { name: 'T',     rots: makeRotations([{q:0,r:0},{q:1,r:0},{q:-1,r:0},{q:0,r:-1}]) },
+const COLORS = [
+  '#ff1744', // 红
+  '#00e5ff', // 青
+  '#76ff03', // 绿
+  '#ff9100', // 橙
+  '#d500f9', // 紫
+  '#2979ff', // 蓝
 ];
+const NUM_COLORS = 5;
+const MATCH_MIN = 3;
+const INNER_R  = 44;       // 中央六边形半径
+const BLOCK_SZ = 15;       // 小方块六边形半径
+const STACK_STEP = BLOCK_SZ * 2 + 3; // 每个方块占的径向间距
+const OUTER_R  = 198;      // 外圈游戏结束边界
+const SPAWN_R  = OUTER_R + 18;
+const FALL_SPD = 1.4;      // 方块下落速度 (px/frame)
+const ROT_SPD  = 0.22;     // 旋转 lerp 速度 (弧度/frame)
+const SPAWN_IV = 1200;     // 初始生成间隔 ms
+const MATCH_PARTICLES = 8; // 消除时的粒子数
 
-// ==================== 坐标转换 ====================
-// 轴向 → offset (pointy-top, odd-r)
-function axialToOffset(q, r) {
-  return {
-    col: q + Math.floor((r - (r & 1)) / 2),
-    row: r
-  };
-}
-
-// offset → 像素
-function offsetToPixel(col, row) {
-  let px = HEX_SIZE * SQRT3 * (col + 0.5 * (row & 1));
-  let py = HEX_SIZE * 1.5 * row;
-  // 加内边距使网格不贴边
-  px += HEX_SIZE * SQRT3 / 2 + HEX_SIZE * 0.3;
-  py += HEX_SIZE + 4;
-  return { x: px, y: py };
-}
-
-// ==================== 游戏状态 ====================
-let grid = [];             // grid[row][col] = hex_color_string | undefined
-let curType = -1;          // 当前方块类型索引
-let curPivot = null;       // {q, r} 轴向坐标
-let curRot = 0;            // 旋转状态索引
-let nextType = -1;
-let score = 0;
-let lines = 0;
-let level = 1;
-let running = false;
-let paused = false;
-let dropMs = 800;
-let lastDrop = 0;
-let rafId = null;
+const SQRT3 = Math.sqrt(3);
+const TAU = Math.PI * 2;
 
 // ==================== Canvas ====================
-const bc = document.getElementById('board');
-const bctx = bc.getContext('2d');
-const pc = document.getElementById('preview');
-const pctx = pc.getContext('2d');
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H, CX, CY;
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
 
-const BW = HEX_SIZE * SQRT3 * COLS + HEX_SIZE * SQRT3;
-const BH = HEX_SIZE * 1.5 * ROWS + HEX_SIZE;
-bc.width = BW;
-bc.height = BH;
+function resize() {
+  const maxW = Math.min(window.innerWidth - 16, 540);
+  const maxH = Math.min(window.innerHeight - 200, 540);
+  const sz = Math.min(maxW, maxH);
+  W = sz; H = sz; CX = W / 2; CY = H / 2;
+  canvas.width = W * DPR;
+  canvas.height = H * DPR;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ==================== 游戏状态 ====================
+let hexRot   = 0;      // lerp 后的实际旋转角
+let hexTarget = 0;     // 目标旋转角
+let stacks   = Array.from({ length: 6 }, () => []); // stacks[face] = [colorIdx, ...]
+let incoming = [];     // { dir:0-5, dist, color }
+let particles = [];    // { x, y, vx, vy, life, color, size }
+
+let score = 0;
+let combo = 0;
+let maxCombo = 0;
+let comboTimer = 0;
+const COMBO_FRAMES = 75;
+
+let spawnTimer = 0;
+let spawnIv = SPAWN_IV;
+let activeColors = 3;
+
+let running = true;
+let paused = false;
+let animId = null;
+
+// ==================== 方向与角度 ====================
+// dir 0 = 正上方 (-π/2), dir 1 = 右上方, ... 顺时针
+function dirAngle(d) { return -Math.PI / 2 + d * Math.PI / 3; }
+
+// 给定当前 hexRot，face f 指向的连续角度
+function faceAngle(f) { return -Math.PI / 2 + hexRot + f * Math.PI / 3; }
+
+// 颜色
+function rndColor() { return Math.floor(Math.random() * activeColors); }
+
+// ==================== 旋转 ====================
+function rotL() { hexTarget -= Math.PI / 3; }
+function rotR() { hexTarget += Math.PI / 3; }
+
+// ==================== 方块到达中心: 绑到最近的 face ====================
+function attachBlock(dir, color) {
+  const incAngle = dirAngle(dir);
+  let bestF = 0, bestD = Infinity;
+  for (let f = 0; f < 6; f++) {
+    let d = Math.abs(incAngle - faceAngle(f));
+    if (d > Math.PI) d = TAU - d;
+    if (d < bestD) { bestD = d; bestF = f; }
+  }
+  stacks[bestF].push(color);
+  checkMatch(bestF);
+}
+
+// ==================== 匹配消除 ====================
+function checkMatch(f) {
+  const s = stacks[f];
+  if (s.length < MATCH_MIN) return;
+  const last = s[s.length - 1];
+  let n = 0;
+  for (let i = s.length - 1; i >= 0; i--) {
+    if (s[i] === last) n++;
+    else break;
+  }
+  if (n >= MATCH_MIN) {
+    // 消除的方块位置 → 生成粒子
+    const a = faceAngle(f);
+    for (let j = 0; j < n; j++) {
+      const dist = INNER_R + BLOCK_SZ + (s.length - 1 - j) * STACK_STEP + 3;
+      const px = CX + Math.cos(a) * dist;
+      const py = CY + Math.sin(a) * dist;
+      spawnParticles(px, py, COLORS[last]);
+    }
+    s.splice(s.length - n, n);
+
+    // 连击
+    combo++;
+    comboTimer = COMBO_FRAMES;
+    if (combo > maxCombo) maxCombo = combo;
+    score += n * 10 + Math.floor(combo / 3) * 15;
+
+    // 递归检查
+    checkMatch(f);
+  }
+}
+
+// ==================== 粒子 ====================
+function spawnParticles(x, y, color) {
+  for (let i = 0; i < MATCH_PARTICLES; i++) {
+    const angle = Math.random() * TAU;
+    const speed = 1 + Math.random() * 3;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 25 + Math.random() * 20,
+      color,
+      size: 2 + Math.random() * 3,
+    });
+  }
+}
+
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life--;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function drawParticles() {
+  for (const p of particles) {
+    const alpha = p.life / 40;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, TAU);
+    ctx.fillStyle = p.color.replace(')', `,${alpha})`).replace('rgb', 'rgba');
+    if (p.color.startsWith('#')) {
+      // 处理 hex 颜色
+      const rgb = hexToRgb(p.color);
+      ctx.fillStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},${alpha})`;
+    }
+    ctx.fill();
+  }
+}
+
+// ==================== 游戏结束 ====================
+function isGameOver() {
+  for (let f = 0; f < 6; f++) {
+    if (INNER_R + stacks[f].length * STACK_STEP > OUTER_R) return true;
+  }
+  return false;
+}
+
+// ==================== 生成方块 ====================
+function spawnBlock() {
+  if (!running || paused) return;
+  const dir = Math.floor(Math.random() * 6);
+  incoming.push({ dir, dist: SPAWN_R, color: rndColor() });
+}
+
+// ==================== 更新 ====================
+function update() {
+  if (!running || paused) return;
+
+  // 旋转 lerp
+  let diff = hexTarget - hexRot;
+  while (diff > Math.PI) diff -= TAU;
+  while (diff < -Math.PI) diff += TAU;
+  if (Math.abs(diff) < 0.0008) {
+    hexRot = hexTarget;
+  } else {
+    hexRot += Math.sign(diff) * Math.min(Math.abs(diff), ROT_SPD);
+  }
+
+  // 移动 incoming
+  for (let i = incoming.length - 1; i >= 0; i--) {
+    incoming[i].dist -= FALL_SPD;
+    if (incoming[i].dist <= INNER_R + BLOCK_SZ) {
+      attachBlock(incoming[i].dir, incoming[i].color);
+      incoming.splice(i, 1);
+      if (isGameOver()) { endGame(); return; }
+    }
+  }
+
+  // 生成
+  spawnTimer++;
+  if (spawnTimer * 16.67 >= spawnIv) {
+    spawnTimer = 0;
+    spawnBlock();
+    // 偶尔同时生成两个
+    if (Math.random() < 0.2) spawnBlock();
+  }
+
+  // 连击计时
+  if (comboTimer > 0) { comboTimer--; if (comboTimer <= 0) combo = 0; }
+
+  // 难度
+  const lv = Math.floor(score / 250) + 1;
+  spawnIv = Math.max(320, SPAWN_IV - (lv - 1) * 55);
+  activeColors = Math.min(NUM_COLORS, 3 + Math.floor((lv - 1) / 3));
+
+  // 粒子
+  updateParticles();
+}
+
+// ==================== 渲染 ====================
+function drawHex(x, y, sz, fill, stroke, lw) {
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = Math.PI / 6 + i * Math.PI / 3;
+    const px = x + sz * Math.cos(a), py = y + sz * Math.sin(a);
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1; ctx.stroke(); }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // 外圈虚线
+  ctx.beginPath();
+  ctx.arc(CX, CY, OUTER_R, 0, TAU);
+  ctx.strokeStyle = '#2d2d50';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([5, 5]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 径向淡线
+  for (let d = 0; d < 6; d++) {
+    const a = dirAngle(d);
+    ctx.beginPath();
+    ctx.moveTo(CX + Math.cos(a) * (INNER_R + 8), CY + Math.sin(a) * (INNER_R + 8));
+    ctx.lineTo(CX + Math.cos(a) * OUTER_R, CY + Math.sin(a) * OUTER_R);
+    ctx.strokeStyle = 'rgba(255,255,255,0.035)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // 堆叠方块（按离中心距离排序绘制，避免遮挡问题）
+  let allStacks = [];
+  for (let f = 0; f < 6; f++) {
+    const a = faceAngle(f);
+    for (let i = 0; i < stacks[f].length; i++) {
+      const dist = INNER_R + BLOCK_SZ + i * STACK_STEP + 3;
+      allStacks.push({
+        x: CX + Math.cos(a) * dist,
+        y: CY + Math.sin(a) * dist,
+        color: COLORS[stacks[f][i]],
+        dist,
+        danger: dist > OUTER_R - 35,
+      });
+    }
+  }
+  // 远处的先画（离中心远 = 在下层）
+  allStacks.sort((a, b) => b.dist - a.dist);
+  for (const s of allStacks) {
+    const clr = s.color;
+    const grad = ctx.createRadialGradient(s.x - 3, s.y - 4, BLOCK_SZ * 0.08, s.x, s.y, BLOCK_SZ);
+    grad.addColorStop(0, lighten(clr, 0.4));
+    grad.addColorStop(1, darken(clr, 0.12));
+    drawHex(s.x, s.y, BLOCK_SZ - 0.5, grad, darken(clr, 0.3), 1.5);
+    // 危险闪烁
+    if (s.danger && Math.floor(Date.now() / 180) % 2 === 0) {
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, BLOCK_SZ + 5, 0, TAU);
+      ctx.strokeStyle = 'rgba(255,60,60,0.35)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }
+
+  // incoming 方块
+  for (const b of incoming) {
+    const a = dirAngle(b.dir);
+    const bx = CX + Math.cos(a) * b.dist, by = CY + Math.sin(a) * b.dist;
+    const clr = COLORS[b.color];
+    const grad = ctx.createRadialGradient(bx - 3, by - 4, BLOCK_SZ * 0.08, bx, by, BLOCK_SZ);
+    grad.addColorStop(0, lighten(clr, 0.45));
+    grad.addColorStop(1, clr);
+    drawHex(bx, by, BLOCK_SZ - 0.3, grad, darken(clr, 0.22), 1.6);
+  }
+
+  // 中央六边形
+  ctx.save();
+  ctx.translate(CX, CY);
+  ctx.rotate(hexRot);
+  const innerGrad = ctx.createRadialGradient(0, 0, INNER_R * 0.25, 0, 0, INNER_R);
+  innerGrad.addColorStop(0, '#1e2d4a');
+  innerGrad.addColorStop(1, '#0f1a30');
+  drawHex(0, 0, INNER_R, innerGrad, '#3d5d8e', 3);
+  // 内光晕
+  const glow = ctx.createRadialGradient(0, 0, INNER_R * 0.2, 0, 0, INNER_R);
+  glow.addColorStop(0, 'rgba(80,150,230,0.2)');
+  glow.addColorStop(1, 'rgba(20,40,80,0)');
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = Math.PI / 6 + i * Math.PI / 3;
+    const px = INNER_R * Math.cos(a), py = INNER_R * Math.sin(a);
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fillStyle = glow;
+  ctx.fill();
+  // 面分隔线
+  for (let i = 0; i < 6; i++) {
+    const a = Math.PI / 6 + i * Math.PI / 3;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(INNER_R * 0.95 * Math.cos(a), INNER_R * 0.95 * Math.sin(a));
+    ctx.strokeStyle = '#3a5a8e';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // 粒子
+  drawParticles();
+
+  // 连击光环
+  if (combo >= 3 && comboTimer > 0) {
+    const alpha = Math.min(1, comboTimer / 25);
+    const r = OUTER_R + 7 + (combo >= 6 ? 10 : 0);
+    ctx.beginPath();
+    ctx.arc(CX, CY, r, 0, TAU);
+    ctx.strokeStyle = `rgba(255,215,64,${alpha * 0.6})`;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+  }
+
+  // 暂停文字
+  if (paused) {
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.font = 'bold 36px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('已暂停', CX, CY);
+  }
+}
 
 // ==================== 颜色工具 ====================
 function hexToRgb(h) {
   const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
-  return m ? { r: parseInt(m[1],16), g: parseInt(m[2],16), b: parseInt(m[3],16) } : {r:0,g:0,b:0};
+  return m ? {r:parseInt(m[1],16),g:parseInt(m[2],16),b:parseInt(m[3],16)} : {r:0,g:0,b:0};
 }
 function lighten(h, a) {
   const c = hexToRgb(h);
@@ -310,375 +464,91 @@ function darken(h, a) {
   return `rgb(${Math.max(0,c.r-Math.round(255*a))},${Math.max(0,c.g-Math.round(255*a))},${Math.max(0,c.b-Math.round(255*a))})`;
 }
 
-// ==================== 绘图 ====================
-function drawHex(ctx, cx, cy, size, fill, stroke, lw) {
-  ctx.beginPath();
-  for (let i = 0; i < 6; i++) {
-    const a = Math.PI / 6 + i * Math.PI / 3;
-    const x = cx + size * Math.cos(a);
-    const y = cy + size * Math.sin(a);
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  }
-  ctx.closePath();
-  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
-  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1; ctx.stroke(); }
-}
-
-function drawBoard() {
-  bctx.clearRect(0, 0, BW, BH);
-  const s = HEX_SIZE;
-
-  // 背景网格
-  for (let row = 0; row < ROWS; row++) {
-    const mc = (row & 1) ? COLS - 1 : COLS;
-    for (let col = 0; col < mc; col++) {
-      const { x, y } = offsetToPixel(col, row);
-      drawHex(bctx, x, y, s - 0.6, '#18183a', '#27275a', 1);
-    }
-  }
-
-  // 已固定的方块
-  for (let row = 0; row < ROWS; row++) {
-    if (!grid[row]) continue;
-    for (let col = 0; col < COLS; col++) {
-      const clr = grid[row][col];
-      if (!clr) continue;
-      const { x, y } = offsetToPixel(col, row);
-      const g = bctx.createRadialGradient(x - 3, y - 5, s * 0.08, x, y, s);
-      g.addColorStop(0, lighten(clr, 0.35));
-      g.addColorStop(1, darken(clr, 0.15));
-      drawHex(bctx, x, y, s - 0.6, g, darken(clr, 0.35), 2);
-    }
-  }
-
-  // 活动方块 & 幽灵
-  if (curType >= 0 && curPivot && running) {
-    const blocks = activeBlocks();
-    const ghost = ghostBlocks();
-
-    // 幽灵投影
-    for (const b of ghost) {
-      const o = axialToOffset(b.q, b.r);
-      if (o.row < 0 || o.row >= ROWS) continue;
-      const mc = (o.row & 1) ? COLS - 1 : COLS;
-      if (o.col < 0 || o.col >= mc) continue;
-      const { x, y } = offsetToPixel(o.col, o.row);
-      drawHex(bctx, x, y, s - 0.6, 'rgba(255,255,255,0.08)', 'rgba(255,255,255,0.25)', 1.5);
-    }
-
-    // 活动方块
-    const base = PIECE_COLORS[curType % PIECE_COLORS.length];
-    for (const b of blocks) {
-      const o = axialToOffset(b.q, b.r);
-      if (o.row < 0 || o.row >= ROWS) continue;
-      const mc = (o.row & 1) ? COLS - 1 : COLS;
-      if (o.col < 0 || o.col >= mc) continue;
-      const { x, y } = offsetToPixel(o.col, o.row);
-      const g = bctx.createRadialGradient(x - 3, y - 5, s * 0.08, x, y, s);
-      g.addColorStop(0, lighten(base, 0.45));
-      g.addColorStop(1, base);
-      drawHex(bctx, x, y, s - 0.6, g, darken(base, 0.25), 2.5);
-    }
-  }
-}
-
-function drawPreview() {
-  pctx.clearRect(0, 0, pc.width, pc.height);
-  if (nextType < 0) return;
-  const blocks = PIECE_DEFS[nextType].rots[0];
-  const s = 13;
-  let mnq = Infinity, mxq = -Infinity, mnr = Infinity, mxr = -Infinity;
-  for (const b of blocks) {
-    if (b.q < mnq) mnq = b.q; if (b.q > mxq) mxq = b.q;
-    if (b.r < mnr) mnr = b.r; if (b.r > mxr) mxr = b.r;
-  }
-  const ox = pc.width / 2 - s * SQRT3 * (mnq + mxq) / 2;
-  const oy = pc.height / 2 - s * 1.5 * (mnr + mxr) / 2;
-  const base = PIECE_COLORS[nextType % PIECE_COLORS.length];
-  for (const b of blocks) {
-    const px = ox + s * (SQRT3 * b.q + SQRT3 / 2 * b.r);
-    const py = oy + s * 1.5 * b.r;
-    const g = pctx.createRadialGradient(px - 2, py - 3, s * 0.1, px, py, s);
-    g.addColorStop(0, lighten(base, 0.45));
-    g.addColorStop(1, base);
-    drawHex(pctx, px, py, s - 0.5, g, darken(base, 0.25), 1.8);
-  }
-}
-
-// ==================== 游戏逻辑 ====================
-function activeBlocks() {
-  const def = PIECE_DEFS[curType];
-  return def.rots[curRot].map(b => ({ q: curPivot.q + b.q, r: curPivot.r + b.r }));
-}
-
-// 碰撞检测：只检测越界（两侧+底部）和与已固定块碰撞；row<0 不算碰撞（方块可从上方入）
-function collides(axialBlocks) {
-  for (const b of axialBlocks) {
-    const o = axialToOffset(b.q, b.r);
-    // 超出底部
-    if (o.row >= ROWS) return true;
-    // 在可视范围内检查列边界和已固定块
-    if (o.row >= 0) {
-      const mc = (o.row & 1) ? COLS - 1 : COLS;
-      if (o.col < 0 || o.col >= mc) return true;
-      if (grid[o.row] && grid[o.row][o.col]) return true;
-    }
-  }
-  return false;
-}
-
-// 幽灵位置（投影到底）
-function ghostBlocks() {
-  const def = PIECE_DEFS[curType];
-  const rot = def.rots[curRot];
-  let gr = curPivot.r;
-  while (true) {
-    const test = rot.map(b => ({ q: curPivot.q + b.q, r: gr + 1 + b.r }));
-    if (collides(test)) break;
-    gr++;
-  }
-  return rot.map(b => ({ q: curPivot.q + b.q, r: gr + b.r }));
-}
-
-function lockPiece() {
-  const blocks = activeBlocks();
-  for (const b of blocks) {
-    const o = axialToOffset(b.q, b.r);
-    if (o.row >= 0 && o.row < ROWS) {
-      const mc = (o.row & 1) ? COLS - 1 : COLS;
-      if (o.col >= 0 && o.col < mc) {
-        if (!grid[o.row]) grid[o.row] = [];
-        grid[o.row][o.col] = PIECE_COLORS[curType % PIECE_COLORS.length];
-      }
-    }
-  }
-  clearLines();
-  spawnPiece();
-}
-
-function clearLines() {
-  let cleared = 0;
-  for (let row = ROWS - 1; row >= 0; row--) {
-    const mc = (row & 1) ? COLS - 1 : COLS;
-    if (grid[row] && mc > 0) {
-      let full = true;
-      for (let c = 0; c < mc; c++) {
-        if (!grid[row][c]) { full = false; break; }
-      }
-      if (full) {
-        cleared++;
-        // 上方行整体下移，同时裁剪列数以适配目标行
-        for (let rr = row; rr > 0; rr--) {
-          const tgtMc = (rr & 1) ? COLS - 1 : COLS;
-          if (grid[rr - 1]) {
-            grid[rr] = grid[rr - 1].slice(0, tgtMc);
-          } else {
-            grid[rr] = [];
-          }
-        }
-        grid[0] = [];
-        row++; // 重新检查当前行
-      }
-    }
-  }
-  if (cleared > 0) {
-    score += [0, 100, 300, 700, 1500][Math.min(cleared, 4)];
-    lines += cleared;
-    level = Math.floor(lines / 10) + 1;
-    dropMs = Math.max(60, 800 - (level - 1) * 55);
-    updateUI();
-  }
-}
-
-function spawnPiece() {
-  curType = nextType >= 0 ? nextType : randPiece();
-  nextType = randPiece();
-  curRot = 0;
-  const spawnQ = Math.floor(COLS / 2) - 1;
-  const spawnR = 0;
-  curPivot = { q: spawnQ, r: spawnR };
-
-  if (collides(activeBlocks())) {
-    gameOver();
-    return;
-  }
-  drawPreview();
-}
-
-function randPiece() {
-  return Math.floor(Math.random() * PIECE_DEFS.length);
-}
-
-// ==================== 移动 & 旋转 ====================
-function tryMove(dq, dr) {
-  const np = { q: curPivot.q + dq, r: curPivot.r + dr };
-  const def = PIECE_DEFS[curType];
-  const test = def.rots[curRot].map(b => ({ q: np.q + b.q, r: np.r + b.r }));
-  if (!collides(test)) {
-    curPivot = np;
-    return true;
-  }
-  return false;
-}
-
-function tryRotate() {
-  const def = PIECE_DEFS[curType];
-  const nr = (curRot + 1) % def.rots.length;
-  const rot = def.rots[nr];
-  const test = rot.map(b => ({ q: curPivot.q + b.q, r: curPivot.r + b.r }));
-  if (!collides(test)) {
-    curRot = nr;
-    return;
-  }
-  // 踢墙
-  const kicks = [
-    {dq:1,dr:0},{dq:-1,dr:0},{dq:2,dr:0},{dq:-2,dr:0},
-    {dq:0,dr:-1},{dq:1,dr:-1},{dq:-1,dr:-1},
-    {dq:0,dr:1},{dq:1,dr:1},{dq:-1,dr:1},
-    {dq:3,dr:0},{dq:-3,dr:0},
-  ];
-  for (const k of kicks) {
-    const kt = rot.map(b => ({ q: curPivot.q + k.dq + b.q, r: curPivot.r + k.dr + b.r }));
-    if (!collides(kt)) {
-      curPivot.q += k.dq;
-      curPivot.r += k.dr;
-      curRot = nr;
-      return;
-    }
-  }
-}
-
-function hardDrop() {
-  let dropped = 0;
-  while (tryMove(0, 1)) dropped++;
-  if (dropped > 0) score += dropped * 2;
-  updateUI();
-  lockPiece();
-}
-
-// ==================== 游戏循环 ====================
-function loop(ts) {
-  if (!running) return;
-  rafId = requestAnimationFrame(loop);
-  if (paused) return;
-  if (ts - lastDrop > dropMs) {
-    if (!tryMove(0, 1)) lockPiece();
-    lastDrop = ts;
-  }
-  drawBoard();
-}
-
+// ==================== UI ====================
 function updateUI() {
   document.getElementById('score').textContent = score;
-  document.getElementById('lines').textContent = lines;
-  document.getElementById('level').textContent = level;
-}
-
-function gameOver() {
-  running = false;
-  cancelAnimationFrame(rafId);
-  document.getElementById('finalScore').textContent = score;
-  document.getElementById('gameOverOverlay').classList.remove('hidden');
-}
-
-function setPaused(v) {
-  paused = v;
-  if (paused) {
-    document.getElementById('pausedOverlay').classList.remove('hidden');
+  document.getElementById('maxCombo').textContent = maxCombo;
+  const el = document.getElementById('comboText');
+  if (combo >= 5) {
+    el.textContent = `🔥 ${combo} 连击!`;
+    el.style.opacity = '1';
+  } else if (combo >= 3) {
+    el.textContent = `${combo} 连击`;
+    el.style.opacity = '0.85';
+  } else if (combo > 0) {
+    el.textContent = `${combo} 连击`;
+    el.style.opacity = '0.5';
   } else {
-    document.getElementById('pausedOverlay').classList.add('hidden');
-    lastDrop = performance.now();
+    el.style.opacity = '0';
   }
 }
 
-function restartGame() {
-  grid = [];
+function endGame() {
+  running = false;
+  cancelAnimationFrame(animId);
+  document.getElementById('finalScore').textContent = score;
+  document.getElementById('goOverlay').classList.remove('hidden');
+}
+
+function restart() {
+  stacks = Array.from({ length: 6 }, () => []);
+  incoming = [];
+  particles = [];
+  hexRot = 0;
+  hexTarget = 0;
   score = 0;
-  lines = 0;
-  level = 1;
-  dropMs = 800;
-  lastDrop = 0;
-  curType = -1;
-  curPivot = null;
-  curRot = 0;
-  nextType = -1;
+  combo = 0;
+  maxCombo = 0;
+  comboTimer = 0;
+  spawnTimer = 0;
+  spawnIv = SPAWN_IV;
+  activeColors = 3;
   running = true;
   paused = false;
-
-  document.getElementById('gameOverOverlay').classList.add('hidden');
-  document.getElementById('pausedOverlay').classList.add('hidden');
+  document.getElementById('goOverlay').classList.add('hidden');
   updateUI();
-  spawnPiece();
-  drawBoard();
-  drawPreview();
-  lastDrop = performance.now();
-  cancelAnimationFrame(rafId);
-  rafId = requestAnimationFrame(loop);
+  animId = requestAnimationFrame(loop);
+}
+
+// ==================== 主循环 ====================
+function loop() {
+  update();
+  draw();
+  updateUI();
+  animId = requestAnimationFrame(loop);
 }
 
 // ==================== 输入 ====================
 document.addEventListener('keydown', e => {
   if (!running) {
-    if (e.key === 'r' || e.key === 'R') { e.preventDefault(); restartGame(); }
+    if (e.key === 'r' || e.key === 'R') { e.preventDefault(); restart(); }
     return;
   }
-  if (e.key === 'p' || e.key === 'P') {
-    e.preventDefault();
-    setPaused(!paused);
-    return;
-  }
+  if (e.key === 'p' || e.key === 'P') { e.preventDefault(); paused = !paused; return; }
   if (paused) return;
-
-  let acted = false;
-  switch (e.key) {
-    case 'ArrowLeft':  e.preventDefault(); acted = tryMove(-1, 0); break;
-    case 'ArrowRight': e.preventDefault(); acted = tryMove(1, 0); break;
-    case 'ArrowDown':  e.preventDefault(); if (!tryMove(0, 1)) lockPiece(); lastDrop = performance.now(); acted = true; break;
-    case 'ArrowUp':    e.preventDefault(); tryRotate(); acted = true; break;
-    case ' ':          e.preventDefault(); hardDrop(); lastDrop = performance.now(); acted = true; break;
-  }
-  if (acted) drawBoard();
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); rotL(); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); rotR(); }
 });
 
-// 触摸手势
-let tsX = 0, tsY = 0, tsT = 0;
-bc.addEventListener('touchstart', e => {
-  tsX = e.touches[0].clientX;
-  tsY = e.touches[0].clientY;
-  tsT = Date.now();
-});
-bc.addEventListener('touchend', e => {
+canvas.addEventListener('pointerdown', e => {
   if (!running || paused) return;
-  const dx = e.changedTouches[0].clientX - tsX;
-  const dy = e.changedTouches[0].clientY - tsY;
-  const dt = Date.now() - tsT;
-  const absDx = Math.abs(dx), absDy = Math.abs(dy);
-  if (absDy > absDx && dy > 40 && dt < 400) {
-    hardDrop();
-  } else if (absDx > absDy && absDx > 20) {
-    tryMove(dx > 0 ? 1 : -1, 0);
-  } else if (dy < -40 && absDy > absDx) {
-    tryRotate();
-  }
-  lastDrop = performance.now();
-  drawBoard();
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  if (x < rect.width / 2) rotL(); else rotR();
 });
+
+canvas.addEventListener('touchstart', e => {
+  if (!running || paused) return;
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const x = e.touches[0].clientX - rect.left;
+  if (x < rect.width / 2) rotL(); else rotR();
+}, { passive: false });
 
 // ==================== 启动 ====================
-function init() {
-  grid = [];
-  score = 0; lines = 0; level = 1;
-  dropMs = 800;
-  running = true; paused = false;
-  curType = -1; nextType = -1; curPivot = null; curRot = 0;
-  updateUI();
-  spawnPiece();
-  drawBoard();
-  drawPreview();
-  lastDrop = performance.now();
-  rafId = requestAnimationFrame(loop);
-}
-init();
+updateUI();
+animId = requestAnimationFrame(loop);
 </script>
 </body>
 </html>
